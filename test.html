@@ -1058,8 +1058,8 @@ document.getElementById('soldierTier')?.addEventListener('change',e=>{
 document.getElementById('allDone').addEventListener('change',e=>{document.querySelectorAll('.bonus').forEach(x=>x.value=e.target.checked?x.dataset.max:'');calc();saveActive();});
 document.querySelectorAll('#bonusModal #chika,#bonusModal .bonus').forEach(x=>x.addEventListener('input',()=>{calc();saveActive();}));
 document.querySelectorAll('.clearDay').forEach(btn=>btn.addEventListener('click',()=>{const p=btn.closest('.dayPanel');p.querySelectorAll('.qty').forEach(x=>x.value='');p.querySelectorAll('.d,.h,.m').forEach(x=>x.value='');syncScoreDurationControl(p);calc();scheduleSave();}));
-function openModal(id){document.querySelectorAll('.modalOverlay.show').forEach(o=>{if(o.id!==id)o.classList.remove('show');});document.getElementById(id).classList.add('show');}function closeModal(id){document.getElementById(id).classList.remove('show');}
-document.getElementById('bonusBtn').addEventListener('click',()=>openModal('bonusModal'));document.getElementById('soldierSettingBtn').addEventListener('click',()=>{openModal('soldierModal');soldierCalc(bonusMap());calc();});document.getElementById('productionSpaceBtn').addEventListener('click',()=>{formatScoreInput(document.getElementById('productionCapacity'));formatScoreInput(document.getElementById('productionSoldierTotal'));calculateProductionSpaceCheck();openModal('productionSpaceModal');});document.getElementById('productionSpaceClear').addEventListener('click',clearProductionSpaceInputs);document.querySelectorAll('#productionSpaceModal .productionSpaceInput').forEach(el=>{el.addEventListener('input',()=>{const raw=el.value.replace(/,/g,'').replace(/[^0-9]/g,'');el.value=raw;calculateProductionSpaceCheck();scheduleSave();});el.addEventListener('blur',()=>{formatScoreInput(el);calculateProductionSpaceCheck();scheduleSave();});});document.getElementById('roleBtn').addEventListener('click',()=>{renderRoles();openModal('roleModal');});document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>closeModal(b.dataset.close)));document.querySelectorAll('.modalOverlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('show');}));
+function openModal(id){document.querySelectorAll('.modalOverlay.show').forEach(o=>{if(o.id!==id)o.classList.remove('show');});document.getElementById(id).classList.add('show');}function closeModal(id){document.getElementById(id).classList.remove('show');if(id==='roleModal'){renderRoles();renderSharedRoleSwitchers();syncSharedActiveRoleUI();}}
+document.getElementById('bonusBtn').addEventListener('click',()=>openModal('bonusModal'));document.getElementById('soldierSettingBtn').addEventListener('click',()=>{openModal('soldierModal');soldierCalc(bonusMap());calc();});document.getElementById('productionSpaceBtn').addEventListener('click',()=>{formatScoreInput(document.getElementById('productionCapacity'));formatScoreInput(document.getElementById('productionSoldierTotal'));calculateProductionSpaceCheck();openModal('productionSpaceModal');});document.getElementById('productionSpaceClear').addEventListener('click',clearProductionSpaceInputs);document.querySelectorAll('#productionSpaceModal .productionSpaceInput').forEach(el=>{el.addEventListener('input',()=>{const raw=el.value.replace(/,/g,'').replace(/[^0-9]/g,'');el.value=raw;calculateProductionSpaceCheck();scheduleSave();});el.addEventListener('blur',()=>{formatScoreInput(el);calculateProductionSpaceCheck();scheduleSave();});});document.getElementById('roleBtn').addEventListener('click',()=>{renderRoles();openModal('roleModal');});document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>closeModal(b.dataset.close)));document.querySelectorAll('.modalOverlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o){o.classList.remove('show');if(o.id==='roleModal'){renderRoles();renderSharedRoleSwitchers();syncSharedActiveRoleUI();}}}));
 document.getElementById('chikaInfo').addEventListener('click',e=>{e.stopPropagation();document.getElementById('chikaFlyout').classList.toggle('show');});
 document.addEventListener('click',e=>{
   const info=e.target.closest?.('.info[data-info]');
@@ -1202,7 +1202,7 @@ function switchRole(id){
 }
 function renameRole(id){const p=db.profiles.find(x=>x.id===id);if(!p)return;const n=prompt('請輸入角色名稱',p.name);if(n&&n.trim()){p.name=n.trim();saveDB();renderRoles();syncSharedActiveRoleUI();if(typeof helpRefreshJumpTabs==='function')helpRefreshJumpTabs();}}
 function deleteRole(id){if(db.profiles.length<=1)return;const idx=db.profiles.findIndex(x=>x.id===id);if(idx<0)return;if(!confirm('確定刪除「'+db.profiles[idx].name+'」？'))return;const was=id===db.active;if(was&&typeof window.__lastzRadarSaveRole==='function')window.__lastzRadarSaveRole();db.profiles.splice(idx,1);if(was){db.active=db.profiles[0].id;const p=RoleManager.active();if(p?.state)applyState(p.state);else{resetProfileUI();calc();}}saveDB();renderRoles();syncSharedActiveRoleUI();if(typeof helpRefreshJumpTabs==='function')helpRefreshJumpTabs();window.dispatchEvent(new CustomEvent('lastz-role-changed',{detail:{id:db.active}}));}
-document.getElementById('addRole').addEventListener('click',()=>{const n=prompt('請輸入新角色名稱','新角色');if(!n||!n.trim())return;if(typeof window.__lastzRadarSaveRole==='function')window.__lastzRadarSaveRole();saveActive();const id='p'+Date.now();db.profiles.push({id,name:n.trim(),state:null});db.active=id;resetProfileUI();calc();saveActive();saveDB();renderRoles();syncSharedActiveRoleUI();window.dispatchEvent(new CustomEvent('lastz-role-changed',{detail:{id:db.active}}));});
+document.getElementById('addRole').addEventListener('click',()=>{let defaultName='新角色';let suffix=2;while(db.profiles.some(p=>p.name===defaultName)){defaultName='新角色'+suffix;suffix++;}const n=prompt('請輸入新角色名稱',defaultName);if(!n||!n.trim())return;if(typeof window.__lastzRadarSaveRole==='function')window.__lastzRadarSaveRole();saveActive();const id='p'+Date.now();const newRoleState={values:[],checks:[],day:4,tierUpdatedAt:Date.now()};const tierEl=document.getElementById('soldierTier');const controls=controlList();const tierIdx=controls.indexOf(tierEl);if(tierIdx>=0)newRoleState.values[tierIdx]='T10';db.profiles.push({id,name:n.trim(),state:newRoleState});db.active=id;resetProfileUI();const newTierTime=Date.now();if(typeof helpDB!=='undefined'&&helpDB){helpDB.roles[id]=helpDB.roles[id]||{};helpDB.roles[id].tier='T10';helpDB.roles[id].tierUpdatedAt=newTierTime;helpSave();}document.getElementById('soldierTier').value='T10';calc();saveActive();saveDB();renderRoles();syncSharedActiveRoleUI();window.dispatchEvent(new CustomEvent('lastz-role-changed',{detail:{id:db.active}}));});
 
 const HELP_STORE='league_help_settings_v2';
 let helpDB=JSON.parse(localStorage.getItem(HELP_STORE)||'null')||{clicks:5,rose:false,disc:false,roles:{}};
@@ -1214,9 +1214,19 @@ function tierForProfile(p){
  const controls=controlList();
  const tierEl=document.getElementById('soldierTier');
  const idx=controls.indexOf(tierEl);
- let tier=(p&&p.state&&Array.isArray(p.state.values)&&idx>=0?p.state.values[idx]:null);
- if(!tier && p?.id && helpDB?.roles?.[p.id]?.tier) tier=helpDB.roles[p.id].tier;
- return /^T(?:10|[1-9])$/.test(tier)?tier:'T10';
+ const stateTier=(p&&p.state&&Array.isArray(p.state.values)&&idx>=0?p.state.values[idx]:null);
+ const helpTier=p?.id&&helpDB?.roles?.[p.id]?.tier;
+ const validState=/^T(?:10|[1-9])$/.test(stateTier);
+ const validHelp=/^T(?:10|[1-9])$/.test(helpTier);
+ if(validState&&validHelp){
+   const stateTime=Number(p?.state?.tierUpdatedAt)||0;
+   const helpTime=Number(helpDB?.roles?.[p.id]?.tierUpdatedAt)||0;
+   if(helpTime>stateTime)return helpTier;
+   return stateTier;
+ }
+ if(validState)return stateTier;
+ if(validHelp)return helpTier;
+ return 'T10';
 }
 function helpRoleData(p){
  const st=helpDB.roles[p.id]||{};
@@ -1347,9 +1357,16 @@ function setProfileTier(p,tier){
  if(idx<0)return;
  if(!p.state)p.state={values:[],checks:[],day:4};
  if(!Array.isArray(p.state.values))p.state.values=[];
- p.state.values[idx]=tier;
+ const safeTier=/^T(?:10|[1-9])$/.test(tier)?tier:'T10';
+ const now=Date.now();
+ p.state.values[idx]=safeTier;
+ p.state.tierUpdatedAt=now;
  p.state.day=typeof p.state.day==='number'?p.state.day:4;
+ helpDB.roles[p.id]=helpDB.roles[p.id]||{};
+ helpDB.roles[p.id].tier=safeTier;
+ helpDB.roles[p.id].tierUpdatedAt=now;
  saveDB();
+ helpSave();
 }
 function isKillDayTW(){
  const now=new Date();
@@ -1378,7 +1395,8 @@ function helpUpdateCard(card,id){
    buildingSpeed:+read('buildingSpeed')||0,
    recruitSpeed:+read('recruitSpeed')||0,
    masterySpeed:+read('masterySpeed')||0,
-   tier:selectedTier
+   tier:selectedTier,
+   tierUpdatedAt:Number(helpDB.roles[id]?.tierUpdatedAt)||Date.now()
  };
  helpDB.roles[id]=d;
  helpSave();
@@ -1482,14 +1500,17 @@ function guideTarget(selector){
   if(selector==='scoreDayPanelTop3'){
     const panel=document.querySelector("#scorePage .dayPanel[style*='display:block']");
     if(!panel)return null;
-    const panelRect=panel.getBoundingClientRect();
-    const dayHeader=panel.querySelector('.dayHeader');
-    const tableHead=panel.querySelector('.body > .tablehead');
     const firstRow=panel.querySelector('.body > .row.resource');
-    if(!dayHeader || !tableHead || !firstRow)return null;
-    const first=dayHeader.getBoundingClientRect();
-    const third=firstRow.getBoundingClientRect();
-    const rect={left:panelRect.left,top:first.top,right:panelRect.right,bottom:third.bottom,width:panelRect.width,height:Math.max(0,third.bottom-first.top)};
+    if(!firstRow)return null;
+    const rowRect=firstRow.getBoundingClientRect();
+    const rect={
+      left:rowRect.left,
+      top:rowRect.top,
+      right:rowRect.right,
+      bottom:rowRect.bottom,
+      width:rowRect.width,
+      height:rowRect.height
+    };
     return {getBoundingClientRect:()=>rect};
   }
 
@@ -2633,10 +2654,9 @@ function loadAvailability(){
   const raw=localStorage.getItem(timeStoreKey);
   const d=raw?JSON.parse(raw):null;
   if(!d){
-    const same=document.querySelector('#sameDayTimes');
-    same.innerHTML=timeRow('08:00','22:00');
+    // 沒有既有的共用設定時，不再自動建立 08:00－22:00 預設時段。
+    // 玩家可操作時間屬於共用設定；若已有舊資料，則由下方直接載入舊資料。
     bindDelete();bindTimeInputs();
-    autoSaveAvailability();
     return;
   }
   if(d.timeMode)document.querySelector(`input[name=timeMode][value="${d.timeMode}"]`).checked=true;
