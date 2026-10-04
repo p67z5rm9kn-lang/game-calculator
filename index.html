@@ -1458,7 +1458,7 @@ const GUIDE_DATA={
     {title:'⭐ 設定積分加成',text:'有千夏、聯盟表彰等積分加成時，點擊「設定」輸入目前的加成；沒有加成可以直接跳過。',target:'#bonusSettingRow',scroll:true},
     {title:'🪖 士兵訓練設定',text:'星期五會用到士兵生產相關項目時，在這裡設定士兵等級、生產一輪時間，以及各兵種的生產上限與訓練加速。',target:'#soldierSettingRow',scroll:true},
     {title:'📅 選擇星期',text:'選擇目前要計算的聯盟對決星期。不同星期的積分項目不同。',target:'#scoreDayTabs',scroll:true},
-    {title:'📦 預估投入資源',text:'依照選擇的星期，在這裡填入你預計投入的資源、次數或時間，系統會換算成預估可取得的積分。',target:'scoreDayPanelTop3',scroll:true},
+    {title:'📦 預估投入資源',text:'依照選擇的星期，在這裡填入你預計投入的資源、次數或時間，系統會換算成預估可取得的積分。',target:'scoreDayPanelFirstRow',scroll:true},
     {title:'✅ 查看結果',text:'最後查看預計最終積分，以及各項目還需要投入多少，就可以依照結果安排今天的進度。',target:'#finalScoreRow',scroll:true}
    ]
  },
@@ -1497,17 +1497,13 @@ function guideSetPageTabFocus(){
   if(tab)tab.classList.add('guidePagePulse');
 }
 function guideTarget(selector){
-  if(selector==='scoreDayPanelTop3'){
+  if(selector==='scoreDayPanelFirstRow'){
     const panel=document.querySelector("#scorePage .dayPanel[style*='display:block']");
     if(!panel)return null;
-    const panelRect=panel.getBoundingClientRect();
-    const dayHeader=panel.querySelector('.dayHeader');
-    const tableHead=panel.querySelector('.body > .tablehead');
     const firstRow=panel.querySelector('.body > .row.resource');
-    if(!dayHeader || !tableHead || !firstRow)return null;
-    const first=dayHeader.getBoundingClientRect();
-    const third=firstRow.getBoundingClientRect();
-    const rect={left:panelRect.left,top:first.top,right:panelRect.right,bottom:third.bottom,width:panelRect.width,height:Math.max(0,third.bottom-first.top)};
+    if(!firstRow)return null;
+    const row=firstRow.getBoundingClientRect();
+    const rect={left:row.left,top:row.top,right:row.right,bottom:row.bottom,width:row.width,height:row.height};
     return {getBoundingClientRect:()=>rect};
   }
 
