@@ -1098,6 +1098,31 @@ function captureBonusState(){return {chika:document.getElementById('chika')?.val
 function applyBonusState(st){const b=st||{};const ch=document.getElementById('chika');if(ch)ch.value=b.chika??'';document.querySelectorAll('#bonusModal .bonus').forEach(x=>{x.value=(b.values&&Object.prototype.hasOwnProperty.call(b.values,x.dataset.key))?b.values[x.dataset.key]:'';});const ad=document.getElementById('allDone');if(ad)ad.checked=!!b.allDone;}
 function captureProductionSpaceState(){return {capacity:document.getElementById('productionCapacity')?.value??'',soldierTotal:document.getElementById('productionSoldierTotal')?.value??''};}
 function applyProductionSpaceState(st){const v=st||{};const map={productionCapacity:v.capacity??'',productionSoldierTotal:v.soldierTotal??''};Object.entries(map).forEach(([id,value])=>{const el=document.getElementById(id);if(el){el.value=value;formatScoreInput(el);}});}
+function captureSoldierState(){
+  return {
+    tier:document.getElementById('soldierTier')?.value??'T10',
+    hour:document.getElementById('twelveH')?.value??'11',
+    minute:document.getElementById('twelveM')?.value??'45',
+    second:document.getElementById('twelveS')?.value??'00',
+    counts:[...document.querySelectorAll('.soldierModal .troopCount')].map(x=>x.value??''),
+    speeds:[...document.querySelectorAll('.soldierModal .troopSpeed')].map(x=>x.value??'')
+  };
+}
+function applySoldierState(st){
+  const v=st||{};
+  const tier=document.getElementById('soldierTier');
+  const hour=document.getElementById('twelveH');
+  const minute=document.getElementById('twelveM');
+  const second=document.getElementById('twelveS');
+  if(tier)tier.value=/^T(?:10|[1-9])$/.test(v.tier)?v.tier:'T10';
+  if(hour)hour.value=String(v.hour??'11').padStart(2,'0');
+  if(minute)minute.value=String(v.minute??'45').padStart(2,'0');
+  if(second)second.value=String(v.second??'00').padStart(2,'0');
+  [...document.querySelectorAll('.soldierModal .troopCount')].forEach((el,i)=>{el.value=v.counts?.[i]??'';});
+  [...document.querySelectorAll('.soldierModal .troopSpeed')].forEach((el,i)=>{el.value=v.speeds?.[i]??'';});
+  syncScoreDurationControl(document);
+  soldierCalc(bonusMap());
+}
 function readProductionNumber(id){const el=document.getElementById(id);if(!el||String(el.value??'').trim()==='')return null;const n=Number(String(el.value).replace(/,/g,''));return Number.isFinite(n)&&n>=0?n:0;}
 function calculateProductionSpaceCheck(){
   const capacity=readProductionNumber('productionCapacity');
@@ -1138,8 +1163,8 @@ function calculateProductionSpaceCheck(){
   }
 }
 function clearProductionSpaceInputs(){const el=document.getElementById('productionSoldierTotal');if(el)el.value='';calculateProductionSpaceCheck();scheduleSave();}
-function captureState(){return {values:controlList().map(x=>x.value),checks:[...document.querySelectorAll('#scorePage input[type=checkbox]')].map(x=>x.checked),day:tabs.findIndex(x=>x.classList.contains('active')),bonus:captureBonusState(),productionSpace:captureProductionSpaceState(),targetMode:document.getElementById('targetMode')?.value||'preset',targetManual:document.getElementById('targetManual')?.value??''};}
-function applyState(st){if(!st)return;st=normalizeBlankManualState(st);const cs=controlList();(st.values||[]).forEach((v,i)=>{if(cs[i])cs[i].value=(cs[i].type==='number'&&Number(v)===0)?'':v;});const tm=document.getElementById('targetMode');const tmanual=document.getElementById('targetManual');if(tm)tm.value=st.targetMode==='manual'?'manual':'preset';if(tmanual){tmanual.value=st.targetManual??'';formatScoreInput(tmanual);}const cur=document.getElementById('current');if(cur)formatScoreInput(cur);setTargetMode(tm?.value||'preset');const ch=[...document.querySelectorAll('#scorePage input[type=checkbox]')];(st.checks||[]).forEach((v,i)=>{if(ch[i])ch[i].checked=v;});applyBonusState(st.bonus);applyProductionSpaceState(st.productionSpace);show(Math.max(0,Math.min(4,st.day||0)));syncScoreDurationControl(document);requestAnimationFrame(()=>syncScoreDurationControl(document));}
+function captureState(){return {values:controlList().map(x=>x.value),checks:[...document.querySelectorAll('#scorePage input[type=checkbox]')].map(x=>x.checked),day:tabs.findIndex(x=>x.classList.contains('active')),bonus:captureBonusState(),productionSpace:captureProductionSpaceState(),soldier:captureSoldierState(),targetMode:document.getElementById('targetMode')?.value||'preset',targetManual:document.getElementById('targetManual')?.value??''};}
+function applyState(st){if(!st)return;st=normalizeBlankManualState(st);const cs=controlList();(st.values||[]).forEach((v,i)=>{if(cs[i])cs[i].value=(cs[i].type==='number'&&Number(v)===0)?'':v;});const tm=document.getElementById('targetMode');const tmanual=document.getElementById('targetManual');if(tm)tm.value=st.targetMode==='manual'?'manual':'preset';if(tmanual){tmanual.value=st.targetManual??'';formatScoreInput(tmanual);}const cur=document.getElementById('current');if(cur)formatScoreInput(cur);setTargetMode(tm?.value||'preset');const ch=[...document.querySelectorAll('#scorePage input[type=checkbox]')];(st.checks||[]).forEach((v,i)=>{if(ch[i])ch[i].checked=v;});applyBonusState(st.bonus);applyProductionSpaceState(st.productionSpace);applySoldierState(st.soldier);show(Math.max(0,Math.min(4,st.day||0)));syncScoreDurationControl(document);requestAnimationFrame(()=>syncScoreDurationControl(document));}
 function saveDB(){localStorage.setItem(STORE,JSON.stringify(db));}
 function saveActive(){const p=db.profiles.find(x=>x.id===db.active);if(p){p.state=captureState();saveDB();}}
 let saveTimer;function scheduleSave(){clearTimeout(saveTimer);saveTimer=setTimeout(saveActive,120);}
@@ -1458,7 +1483,7 @@ const GUIDE_DATA={
     {title:'⭐ 設定積分加成',text:'有千夏、聯盟表彰等積分加成時，點擊「設定」輸入目前的加成；沒有加成可以直接跳過。',target:'#bonusSettingRow',scroll:true},
     {title:'🪖 士兵訓練設定',text:'星期五會用到士兵生產相關項目時，在這裡設定士兵等級、生產一輪時間，以及各兵種的生產上限與訓練加速。',target:'#soldierSettingRow',scroll:true},
     {title:'📅 選擇星期',text:'選擇目前要計算的聯盟對決星期。不同星期的積分項目不同。',target:'#scoreDayTabs',scroll:true},
-    {title:'📦 預估投入資源',text:'依照選擇的星期，在這裡填入你預計投入的資源、次數或時間，系統會換算成預估可取得的積分。',target:'scoreDayPanelFirstRow',scroll:true},
+    {title:'📦 預估投入資源',text:'依照選擇的星期，在這裡填入你預計投入的資源、次數或時間，系統會換算成預估可取得的積分。',target:'scoreDayPanelTop3',scroll:true},
     {title:'✅ 查看結果',text:'最後查看預計最終積分，以及各項目還需要投入多少，就可以依照結果安排今天的進度。',target:'#finalScoreRow',scroll:true}
    ]
  },
@@ -1497,13 +1522,17 @@ function guideSetPageTabFocus(){
   if(tab)tab.classList.add('guidePagePulse');
 }
 function guideTarget(selector){
-  if(selector==='scoreDayPanelFirstRow'){
+  if(selector==='scoreDayPanelTop3'){
     const panel=document.querySelector("#scorePage .dayPanel[style*='display:block']");
     if(!panel)return null;
+    const panelRect=panel.getBoundingClientRect();
+    const dayHeader=panel.querySelector('.dayHeader');
+    const tableHead=panel.querySelector('.body > .tablehead');
     const firstRow=panel.querySelector('.body > .row.resource');
-    if(!firstRow)return null;
-    const row=firstRow.getBoundingClientRect();
-    const rect={left:row.left,top:row.top,right:row.right,bottom:row.bottom,width:row.width,height:row.height};
+    if(!dayHeader || !tableHead || !firstRow)return null;
+    const first=dayHeader.getBoundingClientRect();
+    const third=firstRow.getBoundingClientRect();
+    const rect={left:panelRect.left,top:first.top,right:panelRect.right,bottom:third.bottom,width:panelRect.width,height:Math.max(0,third.bottom-first.top)};
     return {getBoundingClientRect:()=>rect};
   }
 
