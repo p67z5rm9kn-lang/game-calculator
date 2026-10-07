@@ -1503,7 +1503,7 @@ function scheduleHelpKillDayRefresh(){
  },30000);
 }
 
-function switchPage(id){document.getElementById('scorePage').style.display=id==='scorePage'?'block':'none';document.getElementById('helpPage').style.display=id==='helpPage'?'block':'none';document.getElementById('radarPage').style.display=id==='radarPage'?'block':'none';document.getElementById('masteryPage').style.display=id==='masteryPage'?'block':'none';document.querySelectorAll('.mainPageTab').forEach(b=>{const active=b.dataset.page===id;b.classList.toggle('active',active);b.setAttribute('aria-selected',active?'true':'false');});renderSharedRoleSwitchers();if(id==='helpPage')helpRender();if(id==='masteryPage'&&typeof masteryRender==='function')masteryRender();setTimeout(()=>{if(id!=='masteryPage'&&!document.getElementById('guideOverlay').classList.contains('show'))guideOpen(id==='helpPage'?'help':id==='radarPage'?'radar':'score');},80);}
+function switchPage(id){document.getElementById('scorePage').style.display=id==='scorePage'?'block':'none';document.getElementById('helpPage').style.display=id==='helpPage'?'block':'none';document.getElementById('radarPage').style.display=id==='radarPage'?'block':'none';document.getElementById('masteryPage').style.display=id==='masteryPage'?'block':'none';document.querySelectorAll('.mainPageTab').forEach(b=>{const active=b.dataset.page===id;b.classList.toggle('active',active);b.setAttribute('aria-selected',active?'true':'false');});renderSharedRoleSwitchers();if(id==='helpPage')helpRender();if(id==='masteryPage'&&typeof masteryRender==='function')masteryRender();setTimeout(()=>{if(!document.getElementById('guideOverlay').classList.contains('show'))guideOpen(id==='helpPage'?'help':id==='radarPage'?'radar':id==='masteryPage'?'mastery':'score');},80);}
 
 document.querySelectorAll('.mainPageTab').forEach(b=>b.addEventListener('click',()=>switchPage(b.dataset.page)));switchPage('scorePage');
 
@@ -1514,7 +1514,7 @@ document.getElementById('helpClicks').addEventListener('input',e=>{helpDB.clicks
 
 // ==================== 新手導覽 V1｜v0.10.3 三頁共通導覽版 ====================
 const GUIDE_VERSION='v5';
-const GUIDE_KEYS={score:'lastz_guide_score_'+GUIDE_VERSION,help:'lastz_guide_help_'+GUIDE_VERSION,radar:'lastz_guide_radar_'+GUIDE_VERSION};
+const GUIDE_KEYS={score:'lastz_guide_score_'+GUIDE_VERSION,help:'lastz_guide_help_'+GUIDE_VERSION,radar:'lastz_guide_radar_'+GUIDE_VERSION,mastery:'lastz_guide_mastery_'+GUIDE_VERSION};
 const GUIDE_DATA={
  score:{
    introTitle:'🪖 歡迎使用聯盟對決積分計算器',introText:'這個工具可以協助你設定目標積分、整理目前進度，並預估需要投入哪些資源。第一次使用可以跟著導覽走一遍。',
@@ -1549,6 +1549,17 @@ const GUIDE_DATA={
     {title:'👤 角色設定',text:'這裡設定目前角色自己的勞拉、星等與儲存上限。切換角色後，這些資料會跟著角色切換。',target:'#radarPage .radarRoleSettings',scroll:true},
     {title:'📊 查看規劃結果',text:'完成設定後查看規劃結果，依照系統安排操作雷達。',target:'#radarPage .result-heading',scroll:true}
    ]
+ },
+ mastery:{
+   introTitle:'✨ 歡迎使用專精分配',introText:'這裡可以依照目前的總專精點數，快速安排輔助與戰鬥專精，並把常用配點保存成方案。第一次使用可以跟著導覽走一遍。',
+   steps:[
+    {title:'👤 選擇角色',text:'先選擇目前要配置專精的角色。每個角色的專精點數與配點方案會分別保存。',target:'#masteryRoleSwitch',scroll:true},
+    {title:'⭐ 設定總專精點數',text:'輸入目前角色擁有的總專精點數。專精等級會受到這個數值限制，例如總專精點數 74 時，最高只能學到 LV70。',target:'#masteryTotal',scroll:true},
+    {title:'🛠️⚔️ 選擇主修方向',text:'選擇輔助或戰鬥作為主修方向。另一個方向可以透過 LV50「強化學習」開啟副修。',target:'.masteryBranchBar',scroll:true},
+    {title:'📋 管理目前方案',text:'從「當前方案」切換已保存的配點，也可以直接清空目前配點；方案本身會獨立保存，不會因為一般調整而自動改掉其他方案。',target:'.masteryPlanBar',scroll:true},
+    {title:'➕ 分配專精點',text:'在專精卡片按「＋」分配點數。每 1 級消耗 1 點；前置不足、總專精點數不足、主修／副修限制或技能已滿級時，系統會自動限制。',target:'#masterySupportCard',scroll:true},
+    {title:'⚔️ 查看另一個專精方向',text:'下方還有另一個專精方向可以查看。副修能學到的最高等級會受到 LV50 強化學習與前置條件限制，系統會直接顯示目前可解鎖範圍。',target:'#masteryCombatCard',scroll:true}
+   ]
  }
 };
 let guideState={type:null,index:0,intro:true};
@@ -1559,7 +1570,7 @@ function guideClearFocus(){document.querySelectorAll('.guideTargetPulse').forEac
 function guideClearPageTabFocus(){document.querySelectorAll('.mainPageTab.guidePagePulse').forEach(x=>x.classList.remove('guidePagePulse'));}
 function guideSetPageTabFocus(){
   guideClearPageTabFocus();
-  const page=guideState.type==='help'?'helpPage':guideState.type==='radar'?'radarPage':'scorePage';
+  const page=guideState.type==='help'?'helpPage':guideState.type==='radar'?'radarPage':guideState.type==='mastery'?'masteryPage':'scorePage';
   const tab=document.querySelector('.mainPageTab[data-page="'+page+'"]');
   if(tab)tab.classList.add('guidePagePulse');
 }
@@ -1704,7 +1715,7 @@ function guideLater(){guideCloseModals();guideClearFocus();guideClearPageTabFocu
 document.getElementById('guideNext').addEventListener('click',()=>{if(guideState.intro){guideState.intro=false;guideState.index=0;guideRender();return;}if(guideState.index>=GUIDE_DATA[guideState.type].steps.length-1){guideFinish();return;}guideState.index++;guideRender();});
 document.getElementById('guidePrev').addEventListener('click',()=>{if(guideState.intro)return;if(guideState.index>0){guideState.index--;guideRender();}});
 document.getElementById('guideLater').addEventListener('click',guideLater);
-function currentGuideType(){if(document.getElementById('helpPage')?.style.display!=='none')return 'help';if(document.getElementById('radarPage')?.style.display!=='none')return 'radar';return 'score';}
+function currentGuideType(){if(document.getElementById('helpPage')?.style.display!=='none')return 'help';if(document.getElementById('radarPage')?.style.display!=='none')return 'radar';if(document.getElementById('masteryPage')?.style.display!=='none')return 'mastery';return 'score';}
 const guideNavButton=document.getElementById('guideNavBtn');
 if(guideNavButton){guideNavButton.onclick=()=>guideOpen(currentGuideType(),true);}
 
