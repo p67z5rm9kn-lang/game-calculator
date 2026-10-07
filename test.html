@@ -1557,8 +1557,8 @@ const GUIDE_DATA={
     {title:'⭐ 設定總專精點數',text:'輸入目前角色擁有的總專精點數。專精等級會受到這個數值限制，例如總專精點數 74 時，最高只能學到 LV70。',target:'#masteryTotal',scroll:true},
     {title:'🛠️⚔️ 選擇主修方向',text:'選擇輔助或戰鬥作為主修方向。另一個方向可以透過 LV50「強化學習」開啟副修。',target:'.masteryBranchBar',scroll:true},
     {title:'📋 管理目前方案',text:'從「當前方案」切換已保存的配點，也可以直接清空目前配點；方案本身會獨立保存，不會因為一般調整而自動改掉其他方案。',target:'.masteryPlanBar',scroll:true},
-    {title:'➕ 分配專精點',text:'在專精卡片按「＋」分配點數。每 1 級消耗 1 點；前置不足、總專精點數不足、主修／副修限制或技能已滿級時，系統會自動限制。',target:'#masterySupportCard',scroll:true},
-    {title:'⚔️ 查看另一個專精方向',text:'下方還有另一個專精方向可以查看。副修能學到的最高等級會受到 LV50 強化學習與前置條件限制，系統會直接顯示目前可解鎖範圍。',target:'#masteryCombatCard',scroll:true}
+    {title:'➕ 分配專精點',text:'在專精卡片中查看每個等級的專精，按「＋」分配點數。每 1 級消耗 1 點；前置不足、總專精點數不足、主修／副修限制或技能已滿級時，系統會直接限制。',target:'masterySupportTop',scroll:true},
+    {title:'⚔️ 查看另一個專精方向',text:'另一個專精方向也會完整顯示。副修可使用的總點數會受到 LV50「強化學習」等級，以及目前剩餘可使用專精點數影響。',target:'masteryCombatTop',scroll:true}
    ]
  }
 };
@@ -1575,6 +1575,17 @@ function guideSetPageTabFocus(){
   if(tab)tab.classList.add('guidePagePulse');
 }
 function guideTarget(selector){
+  if(selector==='masterySupportTop'||selector==='masteryCombatTop'){
+    const card=document.querySelector(selector==='masterySupportTop'?'#masterySupportCard':'#masteryCombatCard');
+    if(!card)return null;
+    const head=card.querySelector('.masterySectionHead');
+    const row=card.querySelector('.masteryRow');
+    if(!head||!row)return null;
+    const a=head.getBoundingClientRect(),b=row.getBoundingClientRect();
+    const left=Math.min(a.left,b.left),top=Math.min(a.top,b.top),right=Math.max(a.right,b.right),bottom=Math.max(a.bottom,b.bottom);
+    return {getBoundingClientRect:()=>({left,top,right,bottom,width:right-left,height:bottom-top})};
+  }
+
   if(selector==='scoreDayPanelTop3'){
     const panel=[...document.querySelectorAll('#scorePage .dayPanel')].find(p=>getComputedStyle(p).display!=='none');
     if(!panel)return null;
@@ -3285,7 +3296,7 @@ function renderSkill(branch,i,side){const d=effects[branch][i][side==='l'?0:1];i
 function renderBranch(branch){currentBranch=branch;const rows=levels.map((lv,i)=>{let l=renderSkill(branch,i,'l'),r=renderSkill(branch,i,'r');if(l&&!r)l=l.replace('masterySkill ','masterySkill single ');return `<div class="masteryRow"><div class="masteryLv">${lv}</div>${l||''}${r||''}</div>`}).join('');document.getElementById(branch==='support'?'masterySupportRows':'masteryCombatRows').innerHTML=rows;}
 function renderPlans(){const sel=document.getElementById('masteryPlanSelect');if(!sel)return;if(!state.plans.length){sel.innerHTML='<option value="">尚無方案</option>';return}sel.innerHTML=(state.activePlan<0?'<option value="">目前配置（未選方案）</option>':'')+state.plans.map((p,i)=>`<option value="${i}">${escapeHtml(p.name)}</option>`).join('');if(state.activePlan>=0)sel.value=String(state.activePlan);else sel.value='';}
 function escapeHtml(x){return String(x).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
-function renderStatus(){const main=state.mainBranch;const sub=main==='support'?'combat':'support';const allowance=maxOther(sub);const subSpent=branchPoints(sub);const subLv=highestUnlockedLevel(sub,subSpent);const support=document.getElementById('masterySupportStatus'),combat=document.getElementById('masteryCombatStatus');support.textContent=main==='support'?`主修 · ${branchPoints('support')} 點`:`副修 ${subSpent}/${allowance} 點 · 可解鎖至 LV${sub==='support'?subLv:subLv}`;combat.textContent=main==='combat'?`主修 · ${branchPoints('combat')} 點`:`副修 ${subSpent}/${allowance} 點 · 可解鎖至 LV${subLv}`;support.classList.toggle('masterySubStatus',main!=='support');combat.classList.toggle('masterySubStatus',main!=='combat');const sc=document.getElementById('masterySupportCard'),cc=document.getElementById('masteryCombatCard');sc.classList.toggle('masterySubtree',main!=='support');cc.classList.toggle('masterySubtree',main!=='combat');const sr=document.getElementById('masterySupportRows'),cr=document.getElementById('masteryCombatRows');sr.parentElement?.classList.toggle('masterySubtreeRows',main!=='support');cr.parentElement?.classList.toggle('masterySubtreeRows',main!=='combat');}
+function renderStatus(){const main=state.mainBranch;const sub=main==='support'?'combat':'support';const allowance=maxOther(sub);const subSpent=branchPoints(sub);const mainSpent=branchPoints(main);const subAvailable=Math.min(allowance,Math.max(0,state.total-mainSpent));const subLv=highestUnlockedLevel(sub,subAvailable);const support=document.getElementById('masterySupportStatus'),combat=document.getElementById('masteryCombatStatus');support.textContent=main==='support'?`主修 · ${branchPoints('support')} 點`:`副修 ${subSpent}/${subAvailable} 點 · 可解鎖至 LV${subLv}`;combat.textContent=main==='combat'?`主修 · ${branchPoints('combat')} 點`:`副修 ${subSpent}/${subAvailable} 點 · 可解鎖至 LV${subLv}`;support.classList.toggle('masterySubStatus',main!=='support');combat.classList.toggle('masterySubStatus',main!=='combat');const sc=document.getElementById('masterySupportCard'),cc=document.getElementById('masteryCombatCard');sc.classList.toggle('masterySubtree',main!=='support');cc.classList.toggle('masterySubtree',main!=='combat');const sr=document.getElementById('masterySupportRows'),cr=document.getElementById('masteryCombatRows');sr.parentElement?.classList.toggle('masterySubtreeRows',main!=='support');cr.parentElement?.classList.toggle('masterySubtreeRows',main!=='combat');}
 function masteryRender(){state=load();document.getElementById('masteryTotal').value=state.total;document.getElementById('masteryUsed').textContent=used()+' 點';document.querySelectorAll('input[name="masteryMainBranch"]').forEach(x=>x.checked=x.value===state.mainBranch);renderPlans();renderBranch(state.mainBranch);renderBranch(state.mainBranch==='support'?'combat':'support');const supportCard=document.getElementById('masterySupportCard'),combatCard=document.getElementById('masteryCombatCard');const first=state.mainBranch==='support'?supportCard:combatCard;const second=state.mainBranch==='support'?combatCard:supportCard;first.parentNode.insertBefore(first,second);renderStatus();}
 function change(i,side,delta,branch){if(delta>0){const check=canAdd(branch,i,side);if(!check.ok){alert(check.msg||'目前無法增加此專精。');return}}else{const check=canSubstract(branch,i,side);if(!check.ok){alert(check.msg||'目前無法降低此專精。');return}}const k=key(i,side),v=Number(state.alloc[branch][k]||0)+delta;if(v<=0)delete state.alloc[branch][k];else state.alloc[branch][k]=Math.min(MAXLV[branch][i][side==='l'?0:1],v);save();masteryRender();}
 function snapshot(){return {mainBranch:state.mainBranch,alloc:JSON.parse(JSON.stringify(state.alloc))}}
