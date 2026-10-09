@@ -221,7 +221,7 @@ details.helpDetails:not(.helpStaticSection)[open]>.commonTableRow .commonMetric:
 .productionSpaceModal .productionSpaceClear{flex:0 0 auto}
 /* 第一段最後一列已有分隔線，避免下一段 settingBlock 再畫一條造成雙線。 */
 .productionSpaceModal .settingBlock:nth-child(2){border-top:0;padding-top:0;margin-top:16px}
-.productionSpaceModal .productionSpaceInput{font-variant-numeric:tabular-nums}
+.productionSpaceModal .productionSpaceInput{font-variant-numeric:tabular-nums;text-align:right}
 .productionSpaceModal .productionSpaceResultValue{display:block;color:#f2d47e}
 /* 結論獨立成完整一列，並與前一個結果保留較明確的閱讀間距。 */
 .productionSpaceModal .productionSpaceAdviceRow{grid-template-columns:1fr;gap:8px;align-items:start;padding-top:12px}
@@ -1220,7 +1220,7 @@ function calculateProductionSpaceCheck(){
     conclusion.textContent=`⚠️ 扣除訓練中已計入的 ${fmt(trainingCount)} 隻後，剛好用完生產空間。`;
   }
 }
-function clearProductionSpaceInputs(){['productionCapacity','productionSoldierTotal','productionTrainingCount'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});calculateProductionSpaceCheck();scheduleSave();}
+function clearProductionSpaceInputs(){const ids=['productionSoldierTotal','productionTrainingCount'];ids.forEach(id=>{const el=document.getElementById(id);if(el){el.value='';el.dispatchEvent(new Event('input',{bubbles:true}));}});calculateProductionSpaceCheck();saveActive();}
 function captureState(){return {values:controlList().map(x=>x.matches('.qty')?String(x.value??'').replace(/,/g,''):x.value),checks:[...document.querySelectorAll('#scorePage input[type=checkbox]')].map(x=>x.checked),day:tabs.findIndex(x=>x.classList.contains('active')),bonus:captureBonusState(),productionSpace:captureProductionSpaceState(),soldier:captureSoldierState(),targetMode:document.getElementById('targetMode')?.value||'preset',targetManual:document.getElementById('targetManual')?.value??''};}
 function applyState(st){if(!st)return;st=normalizeBlankManualState(st);const cs=controlList();(st.values||[]).forEach((v,i)=>{if(cs[i])cs[i].value=(cs[i].type==='number'&&Number(v)===0)?'':v;});document.querySelectorAll('#scorePage .qty').forEach(formatScoreInput);const tm=document.getElementById('targetMode');const tmanual=document.getElementById('targetManual');if(tm)tm.value=st.targetMode==='manual'?'manual':'preset';if(tmanual){tmanual.value=st.targetManual??'';formatScoreInput(tmanual);}const cur=document.getElementById('current');if(cur)formatScoreInput(cur);setTargetMode(tm?.value||'preset');const ch=[...document.querySelectorAll('#scorePage input[type=checkbox]')];(st.checks||[]).forEach((v,i)=>{if(ch[i])ch[i].checked=v;});applyBonusState(st.bonus);applyProductionSpaceState(st.productionSpace);applySoldierState(st.soldier);show(Math.max(0,Math.min(4,st.day||0)));syncScoreDurationControl(document);requestAnimationFrame(()=>syncScoreDurationControl(document));}
 function saveDB(){localStorage.setItem(STORE,JSON.stringify(db));}
